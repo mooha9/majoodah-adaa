@@ -8,14 +8,14 @@
 <link rel="icon" type="image/png" href="/favicon.png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Reem+Kufi:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Reem+Kufi:wght@500;600;700&family=Baloo+Bhaijaan+2:wght@600;700;800&display=swap">
 <style>
 /* Layout: workbench — sticky header + tabs; items as a grid of standards; the print view is an A4 document */
 :root{
   --ink:#122b2a; --muted:#5b6f6d; --line:#d9e2e0; --paper:#f6f8f7; --card:#ffffff;
   --teal:#0b6b66; --teal-2:#0e8a83; --teal-soft:#e3f1ef; --gold:#a8792a; --gold-soft:#f6eedf;
   --good:#1f8a4c; --warn:#b7791f; --bad:#b4413a;
-  --f-display:"Reem Kufi","IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
+  --f-display:"Baloo Bhaijaan 2","IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
   --f-body:"IBM Plex Sans Arabic","Segoe UI",Tahoma,"Geeza Pro",sans-serif;
   --r:12px;
 }
@@ -190,6 +190,11 @@ section.view{margin-top:22px}
   .page{box-shadow:none;width:210mm;min-height:297mm;page-break-after:always;break-after:page}
   .page:last-child{page-break-after:auto}
 }
+
+/* سهم القوائم المنسدلة — موحّد في منتجات مجودة */
+select{-webkit-appearance:none;-moz-appearance:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%236b8486' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-size:11px 8px!important;padding-inline-end:30px!important;text-overflow:ellipsis;cursor:pointer}
+select:dir(rtl){background-position:left 11px center!important}select:dir(ltr){background-position:right 11px center!important}
+select::-ms-expand{display:none}
 </style>
 
 </head>
