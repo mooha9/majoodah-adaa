@@ -240,6 +240,10 @@ select::-ms-expand{display:none}
     <p><b>هذا ملف تجريبي</b> معبّأ بأمثلة لتعرف شكل النتيجة. حين تجهز، امسح المثال وابدأ ملفك.</p>
     <button class="btn" id="btnClearSample">ابدأ ملفي من جديد</button>
   </div>
+  <div class="banner" id="appBanner" hidden>
+    <p><b>أنت فاتح الملف من داخل تطبيق <span id="appName">التواصل</span>.</b> الطباعة وحفظ PDF والتنزيل ما تشتغل داخل التطبيقات. افتح الرابط في <span id="appBrowser">المتصفح</span> قبل ما تبدأ التعبئة، لأن بياناتك تنحفظ في المتصفح اللي تعبّي فيه.</p>
+    <div class="row"><button class="btn primary" id="btnOpenBrowser">افتح في المتصفح</button><button class="btn" id="btnCopyLink">نسخ الرابط</button><button class="btn" id="btnCopyData">نسخ بياناتي لنقلها</button></div>
+  </div>
   <div class="banner" id="frameBanner" hidden>
     <p>أنت تشاهد نسخة العرض. الطباعة والنسخ الاحتياطي يعملان عند فتح الملف في متصفحك على الجهاز.</p>
   </div>
@@ -307,7 +311,7 @@ select::-ms-expand{display:none}
     <p class="lead">ملفك محفوظ في هذا المتصفح على هذا الجهاز فقط. صدّر نسخة احتياطية بعد كل تحديث مهم، واستعدها على أي جهاز آخر.</p>
     <div class="form">
       <div class="field"><label>تصدير نسخة احتياطية</label><p class="note" style="margin:0">ملف واحد يضم البيانات والصور.</p><div><button class="btn primary" id="btnExport">تنزيل النسخة الاحتياطية</button></div></div>
-      <div class="field"><label for="importFile">استعادة نسخة</label><p class="note" style="margin:0">تستبدل البيانات الحالية بمحتوى النسخة.</p><input type="file" id="importFile" accept=".json,application/json"></div>
+      <div class="field"><label for="importFile">استعادة نسخة</label><p class="note" style="margin:0">تستبدل البيانات الحالية بمحتوى النسخة.</p><input type="file" id="importFile" accept=".json,application/json"><div style="margin-top:8px"><button class="btn" id="btnPasteData">لصق بيانات منسوخة</button></div></div>
       <div class="field"><label>مسح كل البيانات</label><p class="note" style="margin:0">يحذف الملف من هذا المتصفح نهائيًا.</p><div class="row"><button class="btn danger" id="btnWipe">مسح الملف</button><button class="btn danger" id="btnWipeYes" hidden>تأكيد المسح</button></div></div>
     </div>
   </section>
@@ -508,15 +512,32 @@ function renderDoc(){
   $("#doc").innerHTML=h; fillImgs($("#doc")); DIRTY=false;
 }
 var inFrame=false; try{ inFrame=window.self!==window.top; }catch(e){ inFrame=true; }
-$("#btnPrint").addEventListener("click",function(){ show("print"); if(!ACTIVE){ openAct(); return; } if(inFrame){ $("#frameBanner").hidden=false; toast("الطباعة تعمل عند فتح الملف في المتصفح"); return; }
+/* متصفحات التطبيقات (انستقرام، واتساب، تيك توك…) تتجاهل window.print والتنزيل — نوقفها وننبّه مبكراً قبل التعبئة */
+var UA=navigator.userAgent||"", IOS=/iPhone|iPad|iPod/.test(UA)||(/Macintosh/.test(UA)&&"ontouchend" in document), AND=/Android/.test(UA);
+var IN_APP=(function(){ var m=[["Instagram","انستقرام"],["FBAN|FBAV|FB_IAB","فيسبوك"],["WhatsApp","واتساب"],["Snapchat","سناب شات"],["musical_ly|TikTok|BytedanceWebview|trill","تيك توك"],["Twitter","إكس"],["Line/","لاين"],["Telegram","تيليجرام"]];
+  for(var i=0;i<m.length;i++) if(new RegExp(m[i][0]).test(UA)) return m[i][1];
+  if(AND&&/; wv\)/.test(UA)) return "التواصل"; return ""; })();
+function showAppBanner(){ if(!IN_APP) return false; $("#appName").textContent=IN_APP; $("#appBrowser").textContent=IOS?"Safari":"Chrome"; var b=$("#appBanner"); b.hidden=false; b.scrollIntoView({behavior:"smooth",block:"center"}); return true; }
+if(IN_APP&&!inFrame) showAppBanner();
+$("#btnOpenBrowser").addEventListener("click",function(){ var u=location.href.replace(/#.*$/,"");
+  if(AND) location.href="intent://"+u.replace(/^https?:\/\//,"")+"#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url="+encodeURIComponent(u)+";end";
+  else if(IOS) location.href="x-safari-"+u;
+  setTimeout(function(){ toast("إذا ما انفتح: اضغط ⋯ أعلى الشاشة ثم «فتح في المتصفح»"); },900); });
+function copyText(t,ok){ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){ toast(ok); }).catch(function(){ toast("ما قدرت أنسخ — انسخ الرابط من شريط العنوان"); }); }
+$("#btnCopyLink").addEventListener("click",function(){ copyText(location.href.replace(/#.*$/,""),"نُسخ الرابط — الصقه في "+(IOS?"Safari":"Chrome")); });
+function backupObj(){ var ids=allImgIds(); return Promise.all(ids.map(function(id){ return imgSrc(id).then(function(d){ return [id,d]; }); })).then(function(pairs){ var imgs={}; pairs.forEach(function(p){ if(p[1]) imgs[p[0]]=p[1]; }); return {app:"wakeel-performance-file",state:S,imgs:imgs}; }); }
+$("#btnCopyData").addEventListener("click",function(){ backupObj().then(function(o){ copyText(JSON.stringify(o),"نُسخت بياناتك — افتح الملف في المتصفح ثم «النسخ الاحتياطي» ← «لصق بيانات منسوخة»"); }); });
+$("#btnPrint").addEventListener("click",function(){ show("print"); if(!ACTIVE){ openAct(); return; } if(IN_APP&&!inFrame){ showAppBanner(); toast("الطباعة وحفظ PDF تحتاج المتصفح — افتح الرابط في "+(IOS?"Safari":"Chrome")); return; } if(inFrame){ $("#frameBanner").hidden=false; toast("الطباعة تعمل عند فتح الملف في المتصفح"); return; }
   var ims=$$("#doc img"); Promise.all(ims.map(function(im){ return im.complete&&im.src?Promise.resolve():new Promise(function(r){ im.onload=im.onerror=r; setTimeout(r,1500); }); })).then(function(){ setTimeout(function(){ window.print(); },200); }); });
 
 /* ---------- backup ---------- */
 $("#btnExport").addEventListener("click",function(){ if(inFrame){ $("#frameBanner").hidden=false; toast("التصدير يعمل عند فتح الملف في المتصفح"); return; }
-  var ids=allImgIds();
-  Promise.all(ids.map(function(id){ return imgSrc(id).then(function(d){ return [id,d]; }); })).then(function(pairs){ var imgs={}; pairs.forEach(function(p){ if(p[1]) imgs[p[0]]=p[1]; });
-    var blob=new Blob([JSON.stringify({app:"wakeel-performance-file",state:S,imgs:imgs})],{type:"application/json"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="ملف-الأداء-"+(S.info.name||"نسخة").replace(/\s+/g,"-")+".json"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1000); toast("نُزّلت النسخة الاحتياطية"); }); });
-$("#importFile").addEventListener("change",function(e){ var f=e.target.files[0]; e.target.value=""; if(!f) return; var fr=new FileReader(); fr.onload=function(){ try{ var o=JSON.parse(fr.result); if(o.app!=="wakeel-performance-file"||!o.state) throw 0; clearAll().then(function(){ var ps=Object.keys(o.imgs||{}).map(function(k){ imgCache[k]=o.imgs[k]; return put("img:"+k,o.imgs[k]); }); S=o.state; S.sample=false; return Promise.all(ps).then(function(){ return put("state",S); }); }).then(function(){ boot2(); toast("استُعيدت النسخة"); }); }catch(err){ toast("الملف ليس نسخة احتياطية صالحة"); } }; fr.readAsText(f); });
+  if(IN_APP){ showAppBanner(); toast("التنزيل ما يشتغل داخل التطبيق — استخدم «نسخ بياناتي لنقلها»"); return; }
+  backupObj().then(function(o){
+    var blob=new Blob([JSON.stringify(o)],{type:"application/json"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="ملف-الأداء-"+(S.info.name||"نسخة").replace(/\s+/g,"-")+".json"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1000); toast("نُزّلت النسخة الاحتياطية"); }); });
+$("#importFile").addEventListener("change",function(e){ var f=e.target.files[0]; e.target.value=""; if(!f) return; var fr=new FileReader(); fr.onload=function(){ importText(fr.result); }; fr.readAsText(f); });
+function importText(t){ try{ var o=JSON.parse(t); if(o.app!=="wakeel-performance-file"||!o.state) throw 0; clearAll().then(function(){ var ps=Object.keys(o.imgs||{}).map(function(k){ imgCache[k]=o.imgs[k]; return put("img:"+k,o.imgs[k]); }); S=o.state; S.sample=false; return Promise.all(ps).then(function(){ return put("state",S); }); }).then(function(){ boot2(); toast("استُعيدت بياناتك"); }); }catch(err){ toast("هذي ليست بيانات ملف أداء صالحة"); } }
+$("#btnPasteData").addEventListener("click",function(){ if(!navigator.clipboard||!navigator.clipboard.readText){ toast("المتصفح ما يسمح باللصق — حدّث المتصفح"); return; } navigator.clipboard.readText().then(importText).catch(function(){ toast("اسمح باللصق ثم حاول مرة ثانية"); }); });
 $("#btnWipe").addEventListener("click",function(){ this.hidden=true; $("#btnWipeYes").hidden=false; });
 $("#btnWipeYes").addEventListener("click",function(){ clearAll().then(function(){ imgCache={}; S=blank(); put("state",S); boot2(); $("#btnWipeYes").hidden=true; $("#btnWipe").hidden=false; toast("مُسح الملف"); }); });
 $("#btnClearSample").addEventListener("click",function(){ clearAll().then(function(){ imgCache={}; S=blank(); put("state",S); boot2(); show("info"); toast("ابدأ بتعبئة بياناتك"); }); });
