@@ -176,12 +176,13 @@ section.view{margin-top:22px}
 /* inline-block = عنصر واحد لا ينقسم بين صفحتين عند الطباعة */
 .p-imgs>img,.p-imgs>.vthumb{display:inline-block;vertical-align:top;width:calc(50% - 1.5mm);margin:0 0 3mm 0;margin-inline-end:3mm}
 .p-imgs>:nth-child(2n){margin-inline-end:0}.p-imgs.one>img,.p-imgs.one>.vthumb{width:100%;margin-inline-end:0}
-.p-imgs img{height:auto;max-height:105mm;object-fit:contain;background:#f4f8f7;border-radius:1.5mm;border:.5px solid #cfdcda;box-sizing:border-box}
-.p-imgs.one img{max-height:200mm}.p-imgs .vthumb img{display:block;width:100%}
-.p-ev.long{break-inside:auto}.p-pdf{margin-top:3mm}.p-pdf{font-size:0;line-height:0}.p-pdf .cap{line-height:1.5}.p-pdf img{display:inline-block;width:100%;max-height:225mm;box-sizing:border-box;object-fit:contain;border:.5px solid #cfdcda;border-radius:1mm;margin:0 auto 3mm;break-inside:avoid;page-break-inside:avoid}
+.p-imgs img{height:auto;max-height:95mm;object-fit:contain;background:#f4f8f7;border-radius:1.5mm;border:.5px solid #cfdcda;box-sizing:border-box}
+.p-imgs.one img{max-height:190mm}.p-imgs .vthumb img{display:block;width:100%}
+.p-ev.long{break-inside:auto;border:0;border-top:.6mm solid #cfdcda;border-radius:0;padding:3mm 0 0}
+.p-keep{break-inside:avoid;page-break-inside:avoid}.p-pdf{margin-top:3mm}.p-pdf{font-size:0;line-height:0}.p-pdf .cap{line-height:1.5}.p-pdf img{display:inline-block;width:100%;max-height:190mm;box-sizing:border-box;object-fit:contain;border:.5px solid #cfdcda;border-radius:1mm;margin:0 auto 3mm;break-inside:avoid;page-break-inside:avoid}
 .p-pdf .cap{font-size:10.5pt;color:#36504d;margin-bottom:1.5mm}
 .p-imgs .vthumb:after{font-size:16mm}
-.p-files{margin-top:2.5mm;padding:2.5mm 4mm;border:.5px dashed #b9cbc8;border-radius:1.5mm;font-size:10.5pt;color:#36504d}
+.p-files{break-inside:avoid;page-break-inside:avoid;margin-top:2.5mm;padding:2.5mm 4mm;border:.5px dashed #b9cbc8;border-radius:1.5mm;font-size:10.5pt;color:#36504d}
 .p-files>span{display:inline-block;margin-inline-end:5mm}.p-files .hint{color:#6b7f7c;font-size:9.5pt;margin-top:1mm}
 .p-none{color:#8a9b99;font-size:13px;border:.5px dashed #cfdcda;border-radius:2mm;padding:4mm;text-align:center}
 .sig{display:grid;grid-template-columns:1fr 1fr;gap:12mm;margin-top:18mm}
@@ -579,7 +580,20 @@ function renderDoc(){
     if(st.drive&&/^https?:\/\//.test(st.drive)){ var q=qrData(st.drive); if(q) h+='<div class="p-qr"><img src="'+q+'" alt=""><div>امسح لعرض كل الشواهد</div></div>'; }
     h+='<p class="p-desc">'+esc(it.d)+'</p>';
     if(!st.ev.length&&O.empty==="msg"&&O.emptyMsg.trim()) h+='<div class="p-none">'+esc(O.emptyMsg)+'</div>';
-    st.ev.forEach(function(e){ var pdfs=(e.files||[]).filter(function(f){return f.pages&&f.pages.length}); h+='<div class="p-ev'+(pdfs.length?' long':'')+'"><h4>'+esc(e.title)+'<span class="num">'+esc(e.date)+'</span></h4>'+(e.desc?'<p>'+esc(e.desc)+'</p>':'')+(function(){ var fl=e.files||[], vis=e.imgs.map(function(id){return im(id);}).concat(fl.filter(function(f){return f.poster}).map(function(f){return '<span class="vthumb">'+im(f.poster)+'</span>';})).slice(0,4); return (vis.length?'<div class="p-imgs'+(vis.length===1?' one':'')+'">'+vis.join("")+'</div>':'')+pdfs.map(function(f){ return '<div class="p-pdf"><div class="cap">📄 <span class="fname" dir="auto">'+esc(f.name)+'</span>'+(f.pageTotal>f.pages.length?' — أول '+f.pages.length+' صفحة من '+f.pageTotal:'')+'</div>'+f.pages.map(function(id){return im(id);}).join("")+'</div>'; }).join("")+(fl.length?'<div class="p-files"><b>المرفقات: </b>'+fl.map(function(f){return '<span>'+ficon(f)+' <span class="fname" dir="auto">'+esc(f.name)+'</span></span>';}).join("")+(st.drive&&/^https?:\/\//.test(st.drive)?'':'<div class="hint">تُعرض كاملة من جهاز المعلم/ـة، أو ضع رابط مجلد Drive ليظهر رمز QR.</div>')+'</div>':''); })()+'</div>'; });
+    st.ev.forEach(function(e){ var pdfs=(e.files||[]).filter(function(f){return f.pages&&f.pages.length}), fl=e.files||[];
+      var vis=e.imgs.map(function(id){return im(id);}).concat(fl.filter(function(f){return f.poster}).map(function(f){return '<span class="vthumb">'+im(f.poster)+'</span>';})).slice(0,4);
+      var head='<h4>'+esc(e.title)+'<span class="num">'+esc(e.date)+'</span></h4>'+(e.desc?'<p>'+esc(e.desc)+'</p>':'');
+      var imgs=vis.length?'<div class="p-imgs'+(vis.length===1?' one':'')+'">'+vis.join("")+'</div>':'';
+      var cap=function(f){ return '<div class="cap">📄 <span class="fname" dir="auto">'+esc(f.name)+'</span>'+(f.pageTotal>f.pages.length?' — أول '+f.pages.length+' صفحة من '+f.pageTotal:'')+'</div>'; };
+      var files=fl.length?'<div class="p-files"><b>المرفقات: </b>'+fl.map(function(f){return '<span>'+ficon(f)+' <span class="fname" dir="auto">'+esc(f.name)+'</span></span>';}).join("")+(st.drive&&/^https?:\/\//.test(st.drive)?'':'<div class="hint">تُعرض كاملة من جهاز المعلم/ـة، أو ضع رابط مجلد Drive ليظهر رمز QR.</div>')+'</div>':'';
+      var np=pdfs.reduce(function(a,f){ return a+f.pages.length; },0);
+      if(!np||(np===1&&!vis.length)){ /* شاهد يتسع في صفحة واحدة: يبقى كتلة واحدة لا تنقسم */
+        h+='<div class="p-ev">'+head+imgs+pdfs.map(function(f){ return '<div class="p-pdf">'+cap(f)+f.pages.map(function(id){return im(id);}).join("")+'</div>'; }).join("")+files+'</div>'; return; }
+      /* شاهد أطول من صفحة: العنوان يبقى ملتصقاً بأول صورة/صفحة، وكل صفحة PDF قطعة واحدة لا تنقسم */
+      var first, rest=[];
+      if(vis.length){ first=imgs; pdfs.forEach(function(f){ rest.push(cap(f)); f.pages.forEach(function(id){ rest.push(im(id)); }); }); }
+      else { pdfs.forEach(function(f,k){ f.pages.forEach(function(id,n){ var x=(n===0?cap(f):'')+im(id); if(k===0&&n===0) first='<div class="p-pdf">'+x+'</div>'; else rest.push(x); }); }); }
+      h+='<div class="p-ev long"><div class="p-keep">'+head+first+'</div><div class="p-pdf">'+rest.join("")+'</div>'+files+'</div>'; });
     h+=foot()+'</div>'; });
   h+='<div class="page"><h2 style="font-size:24px">الإقرار والاعتماد</h2><p style="margin-top:6mm">أُقرّ بأن الشواهد الواردة في هذا الملف صحيحة وتعكس الأداء الفعلي خلال '+esc(I.term||"العام الدراسي")+' '+esc(I.year||"")+'.</p><div class="sig"><div>وكيل/ـة المدرسة<br><b>'+esc(I.name||"")+'</b>'+sigHtml("me")+'</div><div>قائد/ـة المدرسة<br><b>'+esc(I.principal||"")+'</b>'+sigHtml("boss")+'</div></div><p style="margin-top:14mm;color:#5b6f6d">التاريخ: '+esc(hijriToday())+'</p>'+foot()+'</div>';
   $("#doc").innerHTML=h; fillImgs($("#doc")); DIRTY=false;
