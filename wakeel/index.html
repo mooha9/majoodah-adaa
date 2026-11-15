@@ -43,6 +43,15 @@ button,input,textarea,select{font:inherit;color:inherit}
 .brand h1{font-size:19px}
 .brand small{display:block;color:var(--muted);font-size:12px;font-family:var(--f-body)}
 .spacer{flex:1}
+.sync-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line,#dfe5e4);background:var(--card,#fff);color:var(--muted);border-radius:999px;padding:5px 11px;font:inherit;font-size:12.5px;cursor:pointer}
+.sync-chip i{width:8px;height:8px;border-radius:50%;background:#9aa5a4}
+.sync-chip[data-st=ok] i{background:var(--good,#1f8a5b)} .sync-chip[data-st=busy] i{background:var(--gold,#c99b4b);animation:sypulse 1s ease-in-out infinite alternate}
+.sync-chip[data-st=err] i,.sync-chip[data-st=quota] i{background:var(--bad,#b42318)}
+@keyframes sypulse{to{opacity:.35}}
+.sync-box{border:1px solid var(--teal);border-radius:var(--r);padding:16px;gap:10px}
+.sync-box .msg{font-size:14px} .sync-box .msg.err{color:var(--bad)} .sync-box .msg.ok{color:var(--good)}
+.sync-state{font-size:14px;color:var(--muted)} .sync-choice{display:grid;gap:10px;background:var(--soft,#f4f7f6);border-radius:12px;padding:12px}
+@media print{.sync-chip{display:none!important}}
 .ring{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
 .ring b{color:var(--ink);font-size:15px}
 .btn{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:7px 14px;cursor:pointer;white-space:nowrap}
@@ -237,6 +246,7 @@ select::-ms-expand{display:none}
     <div class="top-row">
       <div class="brand"><div class="mark">و</div><div><h1>ملف الأداء الوظيفي</h1><small>لوكيل ووكيلة المدرسة · العام الدراسي <span id="yrTop">1448هـ</span></small></div></div>
       <div class="spacer"></div>
+      <button type="button" class="sync-chip" id="syncChip" hidden><i></i><span id="syncChipT"></span></button>
       <div class="ring"><span>جاهزية الملف</span><b class="num" id="readyPct">0%</b></div>
       <button class="btn" id="btnAct">تفعيل الطباعة</button>
       <button class="btn primary" id="btnPrint">طباعة / حفظ PDF</button>
@@ -322,11 +332,16 @@ select::-ms-expand{display:none}
   <!-- DATA -->
   <section class="view" id="v-data" hidden>
     <h2>النسخ الاحتياطي</h2>
-    <p class="lead">ملفك محفوظ في هذا المتصفح على هذا الجهاز فقط. صدّر نسخة احتياطية بعد كل تحديث مهم، واستعدها على أي جهاز آخر.</p>
+    <p class="lead" id="dataLead">ملفك محفوظ في هذا المتصفح على هذا الجهاز فقط. صدّر نسخة احتياطية بعد كل تحديث مهم، واستعدها على أي جهاز آخر.</p>
     <div class="form">
+      <div class="field sync-box" id="syncBox" hidden><label for="syncCode">المزامنة بين أجهزتك</label><p class="note" style="margin:0">اكتب كود الشراء نفسه في جوالك وكمبيوترك، ويصير ملفك واحد في الجهازين ويتحدث لحاله.</p>
+        <form class="row" id="syncForm"><input id="syncCode" dir="ltr" autocomplete="off" spellcheck="false" placeholder="ADAA-XXXX-XXXX" aria-label="كود الشراء"><button class="btn primary" type="submit">اربط هذا الجهاز</button></form>
+        <div class="row" id="syncLinked" hidden><span class="sync-state" id="syncState"></span><div class="spacer"></div><button class="btn" type="button" id="btnSyncNow">زامن الآن</button><button class="btn ghost" type="button" id="btnUnlink">افصل هذا الجهاز</button></div>
+        <div class="sync-choice" id="syncChoice" hidden><p style="margin:0">في السحابة ملف محفوظ من جهازك الثاني، وفي هذا الجهاز شواهد ما هي فيه. وش تبي؟</p><div class="row"><button class="btn primary" type="button" id="syncMerge">ادمج الملفين</button><button class="btn" type="button" id="syncTake">خذ ملف السحابة فقط</button><button class="btn ghost" type="button" id="syncCancel">إلغاء</button></div><p class="note" style="margin:0">الدمج يجمع شواهد الجهازين في ملف واحد، وتقدر تحذف المكرر بعدها.</p></div>
+        <div class="msg" id="syncMsg" role="status"></div></div>
       <div class="field"><label>تصدير نسخة احتياطية</label><p class="note" style="margin:0">ملف واحد يضم البيانات والصور.</p><div><button class="btn primary" id="btnExport">تنزيل النسخة الاحتياطية</button></div></div>
       <div class="field"><label for="importFile">استعادة نسخة</label><p class="note" style="margin:0">تستبدل البيانات الحالية بمحتوى النسخة.</p><input type="file" id="importFile" accept=".json,application/json"><div style="margin-top:8px"><button class="btn" id="btnPasteData">لصق بيانات منسوخة</button></div></div>
-      <div class="field"><label>مسح كل البيانات</label><p class="note" style="margin:0">يحذف الملف من هذا المتصفح نهائيًا.</p><div class="row"><button class="btn danger" id="btnWipe">مسح الملف</button><button class="btn danger" id="btnWipeYes" hidden>تأكيد المسح</button></div></div>
+      <div class="field"><label>مسح كل البيانات</label><p class="note" style="margin:0">يحذف الملف من هذا المتصفح نهائيًا، ويفصل المزامنة عن هذا الجهاز (النسخة السحابية تبقى).</p><div class="row"><button class="btn danger" id="btnWipe">مسح الملف</button><button class="btn danger" id="btnWipeYes" hidden>تأكيد المسح</button></div></div>
     </div>
   </section>
 </div>
@@ -353,7 +368,7 @@ function idb(){ if(dbp) return dbp; dbp=new Promise(function(res){ try{ var r=in
 function put(k,v){ mem[k]=v; return idb().then(function(db){ if(!db) return; return new Promise(function(res){ try{ var t=db.transaction("kv","readwrite"); t.objectStore("kv").put(v,k); t.oncomplete=res; t.onerror=res; }catch(e){res()} }); }); }
 function get(k){ if(k in mem) return Promise.resolve(mem[k]); return idb().then(function(db){ if(!db) return undefined; return new Promise(function(res){ try{ var q=db.transaction("kv").objectStore("kv").get(k); q.onsuccess=function(){mem[k]=q.result;res(q.result)}; q.onerror=function(){res(undefined)}; }catch(e){res(undefined)} }); }); }
 function del(k){ delete mem[k]; return idb().then(function(db){ if(!db) return; return new Promise(function(res){ try{ var t=db.transaction("kv","readwrite"); t.objectStore("kv").delete(k); t.oncomplete=res; t.onerror=res; }catch(e){res()} }); }); }
-function clearAll(){ return get("act").then(function(a){ return wipeAll().then(function(){ if(a) return put("act",a); }); }); }
+function clearAll(){ return Promise.all([get("act"),get("sync")]).then(function(a){ return wipeAll().then(function(){ if(a[0]) put("act",a[0]); if(a[1]) return put("sync",a[1]); }); }); }
 function wipeAll(){ mem={}; return idb().then(function(db){ if(!db) return; return new Promise(function(res){ try{ var t=db.transaction("kv","readwrite"); t.objectStore("kv").clear(); t.oncomplete=res; t.onerror=res; }catch(e){res()} }); }); }
 
 /* ---------- state ---------- */
@@ -363,7 +378,7 @@ function blank(){ return {v:1,sample:false,info:{name:"",subject:"",stage:"",sch
 function norm(){ S.info=S.info||{}; if(!("gender" in S.info)) S.info.gender=""; S.sigs=Object.assign({me:"",boss:""},S.sigs||{}); S.opt=Object.assign({empty:"msg",emptyMsg:DEF_EMPTY},S.opt||{}); }
 var S=blank(), saveT=null, DIRTY=true, openIdx=-1, pendingImgs=[], pendingFiles=[], logoTarget=null;
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
-function save(){ DIRTY=true; clearTimeout(saveT); saveT=setTimeout(function(){ put("state",JSON.parse(JSON.stringify(S))); },250); }
+function save(){ DIRTY=true; if(SYNC_ON&&!S.sample) stamp(); clearTimeout(saveT); saveT=setTimeout(function(){ put("state",JSON.parse(JSON.stringify(S))); },250); schedule(2500); }
 function $(s,r){ return (r||document).querySelector(s); }
 function $$(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
 function esc(t){ return String(t==null?"":t).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]}); }
@@ -399,7 +414,7 @@ function pdfPages(blob){ return loadPdfJs().then(function(lib){ return blob.arra
 function upgradePdfs(){ var todo=[]; S.items.forEach(function(x){ x.ev.forEach(function(e){ (e.files||[]).forEach(function(f){ if(isPdf(f)&&!f.pages&&!f.pdfFail) todo.push(f); }); }); }); if(!todo.length) return Promise.resolve(false);
   var ch=Promise.resolve(); todo.forEach(function(f){ ch=ch.then(function(){ return get("file:"+f.id).then(function(b){ if(!b) return; return pdfPages(b).then(function(r){ f.pages=r.pages.map(function(d){ var id=uid(); imgCache[id]=d; put("img:"+id,d); return id; }); f.pageTotal=r.total; }).catch(function(){ f.pdfFail=1; }); }); }); });
   return ch.then(function(){ save(); return true; }); }
-function openFile(f){ get("file:"+f.id).then(function(b){ if(!b){ toast("الملف غير موجود في هذا الجهاز"); return; } var u=URL.createObjectURL(b), a=document.createElement("a"); a.href=u; a.target="_blank"; a.rel="noopener"; if(!/^(video|image|audio)\/|application\/pdf/.test(b.type||f.type||"")) a.download=f.name||"ملف"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(u); a.remove(); },60000); }); }
+function openFile(f){ get("file:"+f.id).then(function(b){ if(!b){ toast(SY.code?"الملف ما وصل لهذا الجهاز بعد (الملفات فوق ٢٥ م.ب تبقى على الجهاز اللي رُفعت منه)":"الملف غير موجود في هذا الجهاز"); return; } var u=URL.createObjectURL(b), a=document.createElement("a"); a.href=u; a.target="_blank"; a.rel="noopener"; if(!/^(video|image|audio)\/|application\/pdf/.test(b.type||f.type||"")) a.download=f.name||"ملف"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(u); a.remove(); },60000); }); }
 function fchipHtml(f,k,attr){ return '<button type="button" class="fchip" '+attr+'="'+k+'" title="'+esc(f.name)+'">'+ficon(f)+'<b class="fname" dir="auto">'+esc(f.name)+'</b><span class="note num">'+fsize(f.size||0)+'</span></button>'; }
 function imgSrc(id){ if(id==="moe") return Promise.resolve(MOE_LOGO); if(id==="vision") return Promise.resolve(VISION_LOGO); if(imgCache[id]) return Promise.resolve(imgCache[id]); return get("img:"+id).then(function(v){ if(v) imgCache[id]=v; return v||""; }); }
 function srcNow(id){ return id==="moe"?MOE_LOGO:id==="vision"?VISION_LOGO:(imgCache[id]||""); }
@@ -593,11 +608,11 @@ $("#btnExport").addEventListener("click",function(){ if(inFrame){ $("#frameBanne
   backupObj(true).then(function(o){
     var blob=new Blob([JSON.stringify(o)],{type:"application/json"}); var a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="ملف-الأداء-"+(S.info.name||"نسخة").replace(/\s+/g,"-")+".json"; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },1000); toast(BK_SKIP?"نُزّلت النسخة — "+BK_SKIP+" ملف أكبر من 25 م.ب لم يُضمَّن":"نُزّلت النسخة الاحتياطية"); }); });
 $("#importFile").addEventListener("change",function(e){ var f=e.target.files[0]; e.target.value=""; if(!f) return; var fr=new FileReader(); fr.onload=function(){ importText(fr.result); }; fr.readAsText(f); });
-function importText(t){ try{ var o=JSON.parse(t); if(o.app!=="wakeel-performance-file"||!o.state) throw 0; clearAll().then(function(){ var ps=Object.keys(o.imgs||{}).map(function(k){ imgCache[k]=o.imgs[k]; return put("img:"+k,o.imgs[k]); }).concat(Object.keys(o.files||{}).map(function(k){ var f=o.files[k]; return fetch(f.data).then(function(r){ return r.blob(); }).then(function(b){ return put("file:"+k,b); }).catch(function(){}); })); S=o.state; S.sample=false; return Promise.all(ps).then(function(){ return put("state",S); }); }).then(function(){ boot2(); toast("استُعيدت بياناتك"); }); }catch(err){ toast("هذي ليست بيانات ملف أداء صالحة"); } }
+function importText(t){ try{ var o=JSON.parse(t); if(o.app!=="wakeel-performance-file"||!o.state) throw 0; clearAll().then(function(){ var ps=Object.keys(o.imgs||{}).map(function(k){ imgCache[k]=o.imgs[k]; return put("img:"+k,o.imgs[k]); }).concat(Object.keys(o.files||{}).map(function(k){ var f=o.files[k]; return fetch(f.data).then(function(r){ return r.blob(); }).then(function(b){ return put("file:"+k,b); }).catch(function(){}); })); var oldTs=S._ts; S=o.state; S.sample=false; S._ts=oldTs||{}; if(SYNC_ON) stamp(); schedule(1500); return Promise.all(ps).then(function(){ return put("state",S); }); }).then(function(){ boot2(); toast("استُعيدت بياناتك"); }); }catch(err){ toast("هذي ليست بيانات ملف أداء صالحة"); } }
 $("#btnPasteData").addEventListener("click",function(){ if(!navigator.clipboard||!navigator.clipboard.readText){ toast("المتصفح ما يسمح باللصق — حدّث المتصفح"); return; } navigator.clipboard.readText().then(importText).catch(function(){ toast("اسمح باللصق ثم حاول مرة ثانية"); }); });
 $("#btnWipe").addEventListener("click",function(){ this.hidden=true; $("#btnWipeYes").hidden=false; });
-$("#btnWipeYes").addEventListener("click",function(){ clearAll().then(function(){ imgCache={}; S=blank(); put("state",S); boot2(); $("#btnWipeYes").hidden=true; $("#btnWipe").hidden=false; toast("مُسح الملف"); }); });
-$("#btnClearSample").addEventListener("click",function(){ clearAll().then(function(){ imgCache={}; S=blank(); put("state",S); boot2(); show("info"); toast("ابدأ بتعبئة بياناتك"); }); });
+$("#btnWipeYes").addEventListener("click",function(){ clearAll().then(function(){ imgCache={}; S=blank(); LASTF=flat(S); if(SY.code) unlink(); put("state",S); boot2(); $("#btnWipeYes").hidden=true; $("#btnWipe").hidden=false; toast("مُسح الملف"); }); });
+$("#btnClearSample").addEventListener("click",function(){ clearAll().then(function(){ imgCache={}; S=blank(); LASTF=flat(S); put("state",S); schedule(800); boot2(); show("info"); toast("ابدأ بتعبئة بياناتك"); }); });
 
 /* ---------- sample ---------- */
 function sampleImg(title,a,b){ var c=document.createElement("canvas"); c.width=800; c.height=560; var x=c.getContext("2d"); var g=x.createLinearGradient(0,0,800,560); g.addColorStop(0,a); g.addColorStop(1,b); x.fillStyle=g; x.fillRect(0,0,800,560); x.globalAlpha=.12; x.fillStyle="#fff"; for(var i=0;i<9;i++){ x.beginPath(); x.arc(100+i*90,120+(i%3)*150,40+(i%4)*18,0,7); x.fill(); } x.globalAlpha=1; x.fillStyle="#fff"; x.font="600 38px Tahoma,sans-serif"; x.textAlign="center"; x.direction="rtl"; x.fillText(title,400,290); x.font="22px Tahoma,sans-serif"; x.fillText("صورة توضيحية",400,340); return c.toDataURL("image/jpeg",.8); }
@@ -609,6 +624,100 @@ function loadSample(){ S=blank(); S.sample=true;
   S.items[0].drive="https://drive.google.com/drive/folders/example"; [5, 0, 0, 4, 4, 4, 0, 0, 4, 0, 0, 4, 0, 4, 4, 0, 0, 0, 4].forEach(function(r,i){ S.items[i].rating=r; });
   put("state",S); }
 
+/* ---------- المزامنة بين الأجهزة (خلف راية SYNC_ON) ----------
+   الملف يتحول لقائمة مفاتيح: حقول البيانات، وكل بند (رابط/تقدير)، وكل شاهد بمعرّفه. كل تعديل يختم مفتاحه بوقته في S._ts،
+   والدمج يأخذ الأحدث لكل مفتاح؛ والشاهد المحذوف يبقى ختمه فيُحذف من بقية الأجهزة. الصور والملفات تُرفع مرة وحدة بمعرّفها. */
+var SYNC_ON=false, SYNC_API="https://rsvp.majoodah.com", SYNC_APP="wakeel";
+var SY={code:"",busy:null,again:false,last:0,state:"off",t:null,defer:0,skipped:0,quota:false};
+var GROUPS=["info","logos","sigs","opt"], LASTF=null;
+function flat(s){ var f={}; GROUPS.forEach(function(g){ var o=s[g]||{}; Object.keys(o).forEach(function(k){ f[g+"."+k]=JSON.stringify(o[k]); }); });
+  (s.items||[]).forEach(function(it,i){ f["it."+i+".drive"]=JSON.stringify(it.drive||""); f["it."+i+".rating"]=JSON.stringify(it.rating||0);
+    (it.ev||[]).forEach(function(e,o){ var c=JSON.parse(JSON.stringify(e)); c._i=i; c._o=o; f["ev."+e.id]=JSON.stringify(c); }); });
+  return f; }
+function stamp(){ if(!S._ts) S._ts={}; var f=flat(S), now=Date.now(); if(LASTF){ var seen={}; Object.keys(f).concat(Object.keys(LASTF)).forEach(function(k){ if(seen[k]) return; seen[k]=1; if(f[k]!==LASTF[k]) S._ts[k]=now; }); } LASTF=f; }
+function emptyV(v){ return v===undefined||v==='""'||v==="0"||v==="null"; }
+function unflat(f,ts){ var s=blank(); GROUPS.forEach(function(g){ s[g]={}; }); var evs=[];
+  Object.keys(f).forEach(function(k){ var v=JSON.parse(f[k]), p=k.split(".");
+    if(p[0]==="ev") evs.push(v); else if(p[0]==="it"){ var it=s.items[+p[1]]; if(it) it[p[2]]=v; } else if(GROUPS.indexOf(p[0])>=0) s[p[0]][p.slice(1).join(".")]=v; });
+  evs.sort(function(a,b){ return (a._o-b._o)||(a.id<b.id?-1:a.id>b.id?1:0); });
+  evs.forEach(function(e){ var i=e._i; delete e._i; delete e._o; if(s.items[i]) s.items[i].ev.push(e); });
+  s._ts=ts||{}; return s; }
+/* الأحدث يفوز لكل مفتاح؛ عند التعادل (بيانات قديمة بلا ختم) نأخذ غير الفارغ، والشواهد تُجمع من الجهازين */
+function merge(L,R){ var fl=flat(L), fr=flat(R), tl=L._ts||{}, tr=R._ts||{}, out={}, ts={}, keys={};
+  [fl,fr,tl,tr].forEach(function(o){ Object.keys(o).forEach(function(k){ keys[k]=1; }); });
+  Object.keys(keys).forEach(function(k){ var a=tl[k]||0, b=tr[k]||0, v=a>b?fl[k]:b>a?fr[k]:(emptyV(fr[k])?fl[k]:fr[k]);
+    if(a||b) ts[k]=Math.max(a,b); if(v!==undefined) out[k]=v; });
+  return unflat(out,ts); }
+function sig(s){ var f=flat(s), t=s._ts||{}; return JSON.stringify(Object.keys(f).sort().map(function(k){ return [k,f[k]]; }))+JSON.stringify(Object.keys(t).sort().map(function(k){ return [k,t[k]]; })); }
+function hasData(s){ return !!s&&!s.sample&&(!!(s.info&&s.info.name)||s.items.some(function(x){ return x.ev.length||x.drive||x.rating; })); }
+/* تطبيق نسخة مدموجة على S نفسه (لا نستبدل الكائن، لأن محرر البند يمسك S.items[i]) ثم تحديث ما يظهر */
+function applyState(m){ var before=sig(S);
+  GROUPS.forEach(function(g){ if(!S[g]||typeof S[g]!=="object") S[g]={}; Object.keys(S[g]).forEach(function(k){ delete S[g][k]; }); Object.assign(S[g],m[g]||{}); });
+  S.items.forEach(function(it,i){ var n=m.items[i]; it.drive=n.drive||""; it.rating=n.rating||0; it.ev.length=0; Array.prototype.push.apply(it.ev,n.ev); });
+  S.sample=false; S._ts=m._ts||{}; norm(); LASTF=flat(S);
+  if(sig(S)===before) return false; put("state",JSON.parse(JSON.stringify(S))); refreshUI(); return true; }
+function refreshUI(){ DIRTY=true; fillInfo(); updReady(); $("#sampleBanner").hidden=!S.sample; var cur=($(".tab[aria-selected=true]")||{dataset:{v:"info"}}).dataset.v;
+  if(cur==="items"){ if(openIdx>=0&&!$("#itemEditor").hidden) renderEv(); else renderGrid(); } else if(cur==="eval") renderEval(); else if(cur==="print") renderDoc(); }
+function refs(s){ var r=[]; ["logos","sigs"].forEach(function(g){ var o=s[g]||{}; Object.keys(o).forEach(function(k){ var v=o[k]; if(v&&typeof v==="string"&&v!=="moe"&&v!=="vision") r.push("img-"+v); }); });
+  s.items.forEach(function(x){ x.ev.forEach(function(e){ (e.imgs||[]).forEach(function(id){ r.push("img-"+id); }); (e.files||[]).forEach(function(f){ r.push("file-"+f.id); if(f.poster) r.push("img-"+f.poster); (f.pages||[]).forEach(function(id){ r.push("img-"+id); }); }); }); });
+  return r.filter(function(x,i){ return /^(img|file)-[A-Za-z0-9_]{1,48}$/.test(x)&&r.indexOf(x)===i; }); }
+function sapi(method,path,body,type){ var h={"X-Sync-Code":SY.code}; if(type) h["Content-Type"]=type;
+  return fetch(SYNC_API+"/api/adaasync/"+SYNC_APP+path,{method:method,headers:h,body:body,cache:"no-store"}).then(function(r){ if(r.status===401){ var e=new Error("code"); e.code=401; throw e; } return r; }); }
+function jsonOk(r){ if(!r.ok){ var e=new Error("http "+r.status); e.code=r.status; throw e; } return r.json(); }
+function localBlob(id){ var k=id.replace("-",":"); return get(k).then(function(v){ if(v==null) return null; return typeof v==="string"?new Blob([v],{type:"text/plain"}):v; }); }
+function pushBlobs(had,maxBlob){ var have={}; had.forEach(function(x){ have[x]=1; }); var todo=refs(S).filter(function(x){ return !have[x]; }), ch=Promise.resolve(); SY.skipped=0;
+  todo.forEach(function(id){ ch=ch.then(function(){ if(SY.quota) return; return localBlob(id).then(function(b){ if(!b) return; if(b.size>maxBlob){ SY.skipped++; return; }
+    return sapi("PUT","/blob/"+id,b,b.type||"application/octet-stream").then(function(r){ if(r.status===413||r.status===507){ SY.quota=true; return; } if(r.ok) have[id]=1; }); }); }); });
+  return ch.then(function(){ return Object.keys(have); }); }
+function pullBlobs(had){ var have={}; had.forEach(function(x){ have[x]=1; }); var got=0, ch=Promise.resolve();
+  refs(S).filter(function(x){ return have[x]; }).forEach(function(id){ ch=ch.then(function(){ var k=id.replace("-",":"); return get(k).then(function(v){ if(v!=null) return;
+    return sapi("GET","/blob/"+id).then(function(r){ if(!r.ok) return; return (id.indexOf("img-")===0?r.text():r.blob()).then(function(d){ if(id.indexOf("img-")===0) imgCache[id.slice(4)]=d; got++; return put(k,d); }); }); }); }); });
+  return ch.then(function(){ if(got){ fillImgs(); refreshUI(); } return got; }); }
+function typing(){ var a=document.activeElement; return !!a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&a.type!=="file"&&!a.closest("#syncBox"); }
+function schedule(ms){ if(!SYNC_ON||!SY.code) return; clearTimeout(SY.t); SY.t=setTimeout(syncNow,ms); }
+function syncNow(){ if(!SYNC_ON||!SY.code) return Promise.resolve(); if(SY.busy){ SY.again=true; return SY.busy; }
+  if(typing()&&SY.defer<8){ SY.defer++; schedule(3000); return Promise.resolve(); } SY.defer=0;
+  if(navigator.onLine===false){ syncUI("offline"); return Promise.resolve(); }
+  syncUI("busy"); var tries=0;
+  function run(){ return sapi("GET","/state").then(jsonOk).then(function(r){ var had=r.blobs||[];
+      if(r.state&&r.state.items){ if(S.sample) applyState(unflat(flat(r.state),r.state._ts)); else applyState(merge(S,r.state)); }
+      return (S.sample?Promise.resolve(had):pushBlobs(had,r.maxBlob||26214400)).then(function(had2){
+        if(r.state&&sig(S)===sig(r.state)) return pullBlobs(had2);
+        if(S.sample) return pullBlobs(had2);
+        return sapi("POST","/state",JSON.stringify({rev:r.rev,state:S}),"application/json").then(function(p){ if(p.status===409&&tries++<4) return run(); return jsonOk(p).then(function(){ return pullBlobs(had2); }); }); }); }); }
+  SY.busy=run().then(function(){ SY.last=Date.now(); syncUI(SY.quota?"quota":"ok"); }).catch(function(e){ if(e&&e.code===401){ unlink(); syncMsg("err","الكود ما عاد صالح للمزامنة. تواصل مع متجر مجودة."); } else syncUI("err"); })
+    .then(function(){ SY.busy=null; if(SY.again){ SY.again=false; schedule(400); } });
+  return SY.busy; }
+function syncMsg(cls,t){ var m=$("#syncMsg"); if(!m) return; m.className="msg"+(cls?" "+cls:""); m.textContent=t||""; }
+function syncUI(st){ SY.state=st; var chip=$("#syncChip"); if(!chip) return; chip.hidden=!SYNC_ON||!SY.code; $("#syncBox").hidden=!SYNC_ON;
+  var L={busy:"جارٍ المزامنة…",ok:"متزامن",err:"تعذّرت المزامنة",offline:"بدون اتصال",quota:"المساحة السحابية امتلأت",off:""};
+  chip.dataset.st=st; $("#syncChipT").textContent=L[st]||""; $("#syncForm").hidden=!!SY.code; $("#syncLinked").hidden=!SY.code;
+  var t=L[st]||""; if(st==="ok"&&SY.last) t+=" · آخر مزامنة "+new Date(SY.last).toLocaleTimeString("ar-SA",{hour:"numeric",minute:"2-digit"}); if(SY.skipped) t+=" · "+SY.skipped+" ملف أكبر من ٢٥ م.ب بقي على جهازه";
+  $("#syncState").textContent=t; }
+function unlink(){ SY.code=""; del("sync"); clearTimeout(SY.t); syncUI("off"); }
+/* ربط الجهاز: الكود نفسه يفعّل الطباعة. إذا في الجهاز ملف وفي السحابة ملف ثاني نسأل: دمج أو أخذ ملف السحابة */
+function linkSync(c){ c=normCode(c); syncMsg("","جارٍ الربط…");
+  return sha256hex("majoodah-adaa-wakeel:"+c).then(function(h){ if(HASHES.indexOf(h)<0){ syncMsg("err","الكود غير صحيح. اكتبه كما وصلك في رسالة الطلب."); return; }
+    put("act",h); setActive(true); SY.code=c;
+    return sapi("GET","/state").then(jsonOk).then(function(r){
+      if(r.state&&hasData(r.state)&&hasData(S)&&sig(merge(S,r.state))!==sig(r.state)){ $("#syncChoice").hidden=false; syncMsg("",""); $("#syncForm").hidden=true; return; }
+      return finishLink(); }); })
+    .catch(function(e){ SY.code=""; syncMsg("err",e&&e.code===401?"الكود غير صحيح للمزامنة.":"تعذّر الاتصال. تأكد من الإنترنت وحاول مرة ثانية."); }); }
+function finishLink(){ put("sync",{code:SY.code}); $("#syncChoice").hidden=true; syncMsg("ok","ارتبط هذا الجهاز. اكتب نفس الكود في جهازك الثاني."); return syncNow(); }
+function setupSync(){ if(!SYNC_ON) return;
+  $("#syncBox").hidden=false; $("#dataLead").textContent="ملفك محفوظ في هذا الجهاز. اربطه بكود الشراء ليتزامن مع جوالك وكمبيوترك، وصدّر نسخة احتياطية بين فترة وفترة.";
+  $("#syncForm").addEventListener("submit",function(e){ e.preventDefault(); var c=$("#syncCode").value; if(normCode(c).length<8){ syncMsg("err","اكتب الكود كاملًا كما وصلك."); return; } linkSync(c); });
+  $("#syncMerge").addEventListener("click",function(){ finishLink(); });
+  $("#syncTake").addEventListener("click",function(){ sapi("GET","/state").then(jsonOk).then(function(r){ if(r.state) applyState(unflat(flat(r.state),r.state._ts)); return finishLink(); }); });
+  $("#syncCancel").addEventListener("click",function(){ SY.code=""; $("#syncChoice").hidden=true; syncUI("off"); syncMsg("",""); });
+  $("#btnSyncNow").addEventListener("click",function(){ syncNow(); });
+  $("#btnUnlink").addEventListener("click",function(){ unlink(); syncMsg("","فُصل هذا الجهاز. ملفك باقٍ فيه، والنسخة السحابية باقية."); });
+  $("#syncChip").addEventListener("click",function(){ show("data"); setTimeout(function(){ $("#syncBox").scrollIntoView({block:"center"}); },30); });
+  document.addEventListener("visibilitychange",function(){ if(!document.hidden) schedule(300); });
+  window.addEventListener("online",function(){ schedule(300); }); window.addEventListener("offline",function(){ if(SY.code) syncUI("offline"); });
+  setInterval(function(){ if(!document.hidden&&SY.code&&!SY.busy) syncNow(); },45000);
+  get("sync").then(function(v){ if(v&&v.code){ SY.code=v.code; syncUI("busy"); syncNow(); } else syncUI("off"); }); }
+
 /* ---------- boot ---------- */
 function boot2(){ norm(); fillInfo(); $("#sampleBanner").hidden=!S.sample; updReady(); var cur=($(".tab[aria-selected=true]")||{dataset:{v:"info"}}).dataset.v; show(cur); txAll(); }
 window.addEventListener("beforeprint",function(){ if(DIRTY||!$("#doc").innerHTML) renderDoc(); document.body.classList.toggle("locked",!ACTIVE); });
@@ -618,9 +727,9 @@ $("#btnAct").addEventListener("click",openAct);
 $("#actClose").addEventListener("click",function(){ $("#actPanel").hidden=true; });
 $("#actForm").addEventListener("submit",function(e){ e.preventDefault(); var c=normCode($("#actCode").value), m=$("#actMsg");
   if(c.length<8){ m.className="msg err"; m.textContent="اكتب الكود كاملًا كما وصلك، مثل WKEL-7K3P-Q9WM."; return; }
-  sha256hex("majoodah-adaa-wakeel:"+c).then(function(h){ if(HASHES.indexOf(h)>=0){ put("act",h); setActive(true); m.className="msg ok"; m.textContent="تم التفعيل. تقدر الآن تطبع ملفك أو تحفظه PDF."; toast("تم تفعيل الملف"); setTimeout(function(){ $("#actPanel").hidden=true; },1600); } else { m.className="msg err"; m.textContent="الكود غير صحيح. تأكد من كتابته كما وصلك في رسالة الطلب، أو تواصل مع متجر مجودة."; } }).catch(function(){ m.className="msg err"; m.textContent="افتح الملف في متصفح حديث (كروم أو سفاري أو إيدج) لإتمام التفعيل."; }); });
+  sha256hex("majoodah-adaa-wakeel:"+c).then(function(h){ if(HASHES.indexOf(h)>=0){ put("act",h); setActive(true); if(SYNC_ON&&!SY.code){ linkSync(c).then(function(){ if(!$("#syncChoice").hidden) show("data"); }); } m.className="msg ok"; m.textContent="تم التفعيل. تقدر الآن تطبع ملفك أو تحفظه PDF."; toast("تم تفعيل الملف"); setTimeout(function(){ $("#actPanel").hidden=true; },1600); } else { m.className="msg err"; m.textContent="الكود غير صحيح. تأكد من كتابته كما وصلك في رسالة الطلب، أو تواصل مع متجر مجودة."; } }).catch(function(){ m.className="msg err"; m.textContent="افتح الملف في متصفح حديث (كروم أو سفاري أو إيدج) لإتمام التفعيل."; }); });
 get("act").then(function(h){ if(h&&HASHES.indexOf(h)>=0) setActive(true); });
-get("state").then(function(st){ if(st&&st.items&&st.items.length===19){ S=st; } else { loadSample(); } norm(); return preload(); }).then(function(){ upgradePdfs().then(function(ch){ if(ch){ preload().then(function(){ DIRTY=true; boot2(); }); } }); var h=(location.hash||"").slice(1); if(["info","items","eval","print","data"].indexOf(h)>=0){ $$(".tab").forEach(function(t){ t.setAttribute("aria-selected",t.dataset.v===h?"true":"false"); }); } boot2(); });
+get("state").then(function(st){ if(st&&st.items&&st.items.length===19){ S=st; } else { loadSample(); } norm(); LASTF=flat(S); return preload(); }).then(function(){ upgradePdfs().then(function(ch){ if(ch){ preload().then(function(){ DIRTY=true; boot2(); }); } }); var h=(location.hash||"").slice(1); if(["info","items","eval","print","data"].indexOf(h)>=0){ $$(".tab").forEach(function(t){ t.setAttribute("aria-selected",t.dataset.v===h?"true":"false"); }); } boot2(); setupSync(); });
 })();
 </script>
 
