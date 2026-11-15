@@ -638,7 +638,7 @@ function loadSample(){ S=blank(); S.sample=true;
 /* ---------- المزامنة بين الأجهزة (خلف راية SYNC_ON) ----------
    الملف يتحول لقائمة مفاتيح: حقول البيانات، وكل بند (رابط/تقدير)، وكل شاهد بمعرّفه. كل تعديل يختم مفتاحه بوقته في S._ts،
    والدمج يأخذ الأحدث لكل مفتاح؛ والشاهد المحذوف يبقى ختمه فيُحذف من بقية الأجهزة. الصور والملفات تُرفع مرة وحدة بمعرّفها. */
-var SYNC_ON=false, SYNC_API="https://rsvp.majoodah.com", SYNC_APP="adaa";
+var SYNC_ON=true, SYNC_API="https://rsvp.majoodah.com", SYNC_APP="adaa";
 var SY={code:"",busy:null,again:false,last:0,state:"off",t:null,defer:0,skipped:0,quota:false};
 var GROUPS=["info","logos","sigs","opt"], LASTF=null;
 function flat(s){ var f={}; GROUPS.forEach(function(g){ var o=s[g]||{}; Object.keys(o).forEach(function(k){ f[g+"."+k]=JSON.stringify(o[k]); }); });
