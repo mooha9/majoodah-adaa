@@ -335,7 +335,7 @@ select::-ms-expand{display:none}
     <p class="lead" id="dataLead">ملفك محفوظ في هذا المتصفح على هذا الجهاز فقط. صدّر نسخة احتياطية بعد كل تحديث مهم، واستعدها على أي جهاز آخر.</p>
     <div class="form">
       <div class="field sync-box" id="syncBox" hidden><label for="syncCode">المزامنة بين أجهزتك</label><p class="note" style="margin:0">اكتب كود الشراء نفسه في جوالك وكمبيوترك، ويصير ملفك واحد في الجهازين ويتحدث لحاله.</p>
-        <form class="row" id="syncForm"><input id="syncCode" dir="ltr" autocomplete="off" spellcheck="false" placeholder="ADAA-XXXX-XXXX" aria-label="كود الشراء"><button class="btn primary" type="submit">اربط هذا الجهاز</button></form>
+        <form class="row" id="syncForm"><input id="syncCode" dir="ltr" autocomplete="off" spellcheck="false" placeholder="QAED-XXXX-XXXX" aria-label="كود الشراء"><button class="btn primary" type="submit">اربط هذا الجهاز</button></form>
         <div class="row" id="syncLinked" hidden><span class="sync-state" id="syncState"></span><div class="spacer"></div><button class="btn" type="button" id="btnSyncNow">زامن الآن</button><button class="btn ghost" type="button" id="btnUnlink">افصل هذا الجهاز</button></div>
         <div class="sync-choice" id="syncChoice" hidden><p style="margin:0">في السحابة ملف محفوظ من جهازك الثاني، وفي هذا الجهاز شواهد ما هي فيه. وش تبي؟</p><div class="row"><button class="btn primary" type="button" id="syncMerge">ادمج الملفين</button><button class="btn" type="button" id="syncTake">خذ ملف السحابة فقط</button><button class="btn ghost" type="button" id="syncCancel">إلغاء</button></div><p class="note" style="margin:0">الدمج يجمع شواهد الجهازين في ملف واحد، وتقدر تحذف المكرر بعدها.</p></div>
         <div class="msg" id="syncMsg" role="status"></div></div>
@@ -627,7 +627,7 @@ function loadSample(){ S=blank(); S.sample=true;
 /* ---------- المزامنة بين الأجهزة (خلف راية SYNC_ON) ----------
    الملف يتحول لقائمة مفاتيح: حقول البيانات، وكل بند (رابط/تقدير)، وكل شاهد بمعرّفه. كل تعديل يختم مفتاحه بوقته في S._ts،
    والدمج يأخذ الأحدث لكل مفتاح؛ والشاهد المحذوف يبقى ختمه فيُحذف من بقية الأجهزة. الصور والملفات تُرفع مرة وحدة بمعرّفها. */
-var SYNC_ON=false, SYNC_API="https://rsvp.majoodah.com", SYNC_APP="qaed";
+var SYNC_ON=true, SYNC_API="https://rsvp.majoodah.com", SYNC_APP="qaed";
 var SY={code:"",busy:null,again:false,last:0,state:"off",t:null,defer:0,skipped:0,quota:false};
 var GROUPS=["info","logos","sigs","opt"], LASTF=null;
 function flat(s){ var f={}; GROUPS.forEach(function(g){ var o=s[g]||{}; Object.keys(o).forEach(function(k){ f[g+"."+k]=JSON.stringify(o[k]); }); });
