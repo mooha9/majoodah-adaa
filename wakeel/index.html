@@ -210,8 +210,14 @@ section.view{margin-top:22px}
   .top,.banner,section.view:not(#v-print),#v-print .lead,.toast,.no-print{display:none!important}
   #v-print{display:block!important;margin:0}
   .doc{gap:0;display:block!important}
-  .page{box-shadow:none;width:100%!important;max-width:none;margin:0;min-height:0;padding:12mm 13mm 16mm;page-break-after:always;break-after:page}
-  .page.cover{min-height:250mm}
+  /* كل صفحة بمقاس A4 بالضبط (210×297 مم)؛ @page بلا هوامش فالصفحة = الورقة */
+  html,body{width:210mm;margin:0!important;padding:0!important}
+  .page{box-shadow:none;width:210mm!important;max-width:none;margin:0;min-height:0;padding:12mm 13mm 16mm;page-break-after:always;break-after:page}
+  .page.cover{height:296mm;min-height:0;overflow:hidden}
+  /* سفاري الآيفون يفرض هوامشه ويتجاهل margin:0، فنخلي الصفحة تملأ المساحة المتاحة داخل ورقة A4 بدل ما تنقص */
+  html.ios,html.ios body{width:auto}
+  html.ios .page{width:100%!important}
+  html.ios .page.cover{height:auto;min-height:250mm}
   .page:last-child{page-break-after:auto}
 }
 
@@ -580,7 +586,7 @@ function renderDoc(){
 }
 var inFrame=false; try{ inFrame=window.self!==window.top; }catch(e){ inFrame=true; }
 /* متصفحات التطبيقات (انستقرام، واتساب، تيك توك…) تتجاهل window.print والتنزيل — نوقفها وننبّه مبكراً قبل التعبئة */
-var UA=navigator.userAgent||"", IOS=/iPhone|iPad|iPod/.test(UA)||(/Macintosh/.test(UA)&&"ontouchend" in document), AND=/Android/.test(UA);
+var UA=navigator.userAgent||"", IOS=/iPhone|iPad|iPod/.test(UA)||(/Macintosh/.test(UA)&&"ontouchend" in document), AND=/Android/.test(UA); if(IOS) document.documentElement.classList.add("ios");
 var IN_APP=(function(){ var m=[["Instagram","انستقرام"],["FBAN|FBAV|FB_IAB","فيسبوك"],["WhatsApp","واتساب"],["Snapchat","سناب شات"],["musical_ly|TikTok|BytedanceWebview|trill","تيك توك"],["Twitter","إكس"],["Line/","لاين"],["Telegram","تيليجرام"]];
   for(var i=0;i<m.length;i++) if(new RegExp(m[i][0]).test(UA)) return m[i][1];
   if(AND&&/; wv\)/.test(UA)) return "التواصل"; return ""; })();
