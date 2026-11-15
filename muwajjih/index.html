@@ -337,7 +337,7 @@ select::-ms-expand{display:none}
       <div class="field sync-box" id="syncBox" hidden><label for="syncCode">المزامنة بين أجهزتك</label><p class="note" style="margin:0">اكتب كود الشراء نفسه في جوالك وكمبيوترك، ويصير ملفك واحد في الجهازين ويتحدث لحاله.</p>
         <form class="row" id="syncForm"><input id="syncCode" dir="ltr" autocomplete="off" spellcheck="false" placeholder="MWJH-XXXX-XXXX" aria-label="كود الشراء"><button class="btn primary" type="submit">اربط هذا الجهاز</button></form>
         <div class="row" id="syncLinked" hidden><span class="sync-state" id="syncState"></span><div class="spacer"></div><button class="btn" type="button" id="btnSyncNow">زامن الآن</button><button class="btn ghost" type="button" id="btnUnlink">افصل هذا الجهاز</button></div>
-        <div class="sync-choice" id="syncChoice" hidden><p style="margin:0">في السحابة ملف محفوظ من جهازك الثاني، وفي هذا الجهاز شواهد ما هي فيه. وش تبي؟</p><div class="row"><button class="btn primary" type="button" id="syncMerge">ادمج الملفين</button><button class="btn" type="button" id="syncTake">خذ ملف السحابة فقط</button><button class="btn ghost" type="button" id="syncCancel">إلغاء</button></div><p class="note" style="margin:0">الدمج يجمع شواهد الجهازين في ملف واحد، وتقدر تحذف المكرر بعدها.</p></div>
+        <div class="sync-choice" id="syncChoice" hidden><p style="margin:0">في السحابة ملف محفوظ من جهازك الثاني، وفي هذا الجهاز شواهد ما هي فيه. وش تبي؟</p><div class="row"><button class="btn primary" type="button" id="syncMerge">ادمج الملفين</button><button class="btn" type="button" id="syncTake">خذ ملف السحابة فقط</button><button class="btn ghost" type="button" id="syncCancel">إلغاء</button></div><p class="note" style="margin:0">الدمج يجمع شواهد الجهازين في ملف واحد، والشاهد المكرر يُحذف تلقائيًا وتبقى صوره كلها.</p></div>
         <div class="msg" id="syncMsg" role="status"></div></div>
       <div class="field"><label>تصدير نسخة احتياطية</label><p class="note" style="margin:0">ملف واحد يضم البيانات والصور.</p><div><button class="btn primary" id="btnExport">تنزيل النسخة الاحتياطية</button></div></div>
       <div class="field"><label for="importFile">استعادة نسخة</label><p class="note" style="margin:0">تستبدل البيانات الحالية بمحتوى النسخة.</p><input type="file" id="importFile" accept=".json,application/json"><div style="margin-top:8px"><button class="btn" id="btnPasteData">لصق بيانات منسوخة</button></div></div>
@@ -675,6 +675,21 @@ function pullBlobs(had){ var have={}; had.forEach(function(x){ have[x]=1; }); va
   return ch.then(function(){ if(got){ fillImgs(); refreshUI(); } return got; }); }
 function typing(){ var a=document.activeElement; return !!a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&a.type!=="file"&&!a.closest("#syncBox"); }
 function schedule(ms){ if(!SYNC_ON||!SY.code) return; clearTimeout(SY.t); SY.t=setTimeout(syncNow,ms); }
+/* الشواهد المكررة (نفس العنوان في نفس البند، والوصف نفسه أو فارغ في أحدهما) تُدمج في شاهد واحد:
+   يبقى الأغنى بالمرفقات، وتُضاف له صور وملفات الآخر غير الموجودة فيه (الصورة تُقارن بمحتواها، والملف باسمه وحجمه) */
+function nrm(t){ return String(t||"").trim().replace(/\s+/g," ").replace(/[\u064B-\u0652]/g,""); }
+function dedupEv(){ if(S.sample) return Promise.resolve(0); var groups=[];
+  S.items.forEach(function(it){ var used={}; it.ev.forEach(function(e,a){ if(used[a]) return; var g=[e];
+    it.ev.forEach(function(f,b){ if(b<=a||used[b]) return; var d1=nrm(e.desc), d2=nrm(f.desc); if(nrm(e.title)&&nrm(e.title)===nrm(f.title)&&(d1===d2||!d1||!d2)){ used[b]=1; g.push(f); } });
+    if(g.length>1) groups.push([it,g]); }); });
+  if(!groups.length) return Promise.resolve(0); var removed=0, ch=Promise.resolve();
+  groups.forEach(function(x){ ch=ch.then(function(){ var it=x[0], g=x[1].slice().sort(function(a,b){ return (((b.imgs||[]).length+(b.files||[]).length*2)-((a.imgs||[]).length+(a.files||[]).length*2))||(a.id<b.id?-1:a.id>b.id?1:0); }), keep=g[0];
+    keep.imgs=keep.imgs||[]; keep.files=keep.files||[]; if(!nrm(keep.desc)) keep.desc=g.map(function(e){ return e.desc; }).filter(function(d){ return nrm(d); })[0]||keep.desc||"";
+    return Promise.all(keep.imgs.map(imgSrc)).then(function(have){ var c2=Promise.resolve();
+      g.slice(1).forEach(function(o){ (o.imgs||[]).forEach(function(id){ c2=c2.then(function(){ return imgSrc(id).then(function(d){ if(d&&have.indexOf(d)<0){ have.push(d); keep.imgs.push(id); } }); }); });
+        (o.files||[]).forEach(function(f){ if(!keep.files.some(function(k){ return k.name===f.name&&k.size===f.size; })) keep.files.push(f); }); });
+      return c2.then(function(){ g.slice(1).forEach(function(o){ var k=it.ev.indexOf(o); if(k>=0){ it.ev.splice(k,1); removed++; } }); }); }); }); });
+  return ch.then(function(){ if(removed){ save(); refreshUI(); toast(removed===1?"حُذف شاهد مكرر":"حُذفت الشواهد المكررة ("+removed+")"); } return removed; }); }
 function syncNow(){ if(!SYNC_ON||!SY.code) return Promise.resolve(); if(SY.busy){ SY.again=true; return SY.busy; }
   if(typing()&&SY.defer<8){ SY.defer++; schedule(3000); return Promise.resolve(); } SY.defer=0;
   if(navigator.onLine===false){ syncUI("offline"); return Promise.resolve(); }
@@ -685,7 +700,7 @@ function syncNow(){ if(!SYNC_ON||!SY.code) return Promise.resolve(); if(SY.busy)
         if(r.state&&sig(S)===sig(r.state)) return pullBlobs(had2);
         if(S.sample) return pullBlobs(had2);
         return sapi("POST","/state",JSON.stringify({rev:r.rev,state:S}),"application/json").then(function(p){ if(p.status===409&&tries++<4) return run(); return jsonOk(p).then(function(){ return pullBlobs(had2); }); }); }); }); }
-  SY.busy=run().then(function(){ SY.last=Date.now(); syncUI(SY.quota?"quota":"ok"); }).catch(function(e){ if(e&&e.code===401){ unlink(); syncMsg("err","الكود ما عاد صالح للمزامنة. تواصل مع متجر مجودة."); } else syncUI("err"); })
+  SY.busy=run().then(dedupEv).then(function(){ SY.last=Date.now(); syncUI(SY.quota?"quota":"ok"); }).catch(function(e){ if(e&&e.code===401){ unlink(); syncMsg("err","الكود ما عاد صالح للمزامنة. تواصل مع متجر مجودة."); } else syncUI("err"); })
     .then(function(){ SY.busy=null; if(SY.again){ SY.again=false; schedule(400); } });
   return SY.busy; }
 function syncMsg(cls,t){ var m=$("#syncMsg"); if(!m) return; m.className="msg"+(cls?" "+cls:""); m.textContent=t||""; }
@@ -729,7 +744,7 @@ $("#actForm").addEventListener("submit",function(e){ e.preventDefault(); var c=n
   if(c.length<8){ m.className="msg err"; m.textContent="اكتب الكود كاملًا كما وصلك، مثل MWJH-7K3P-Q9WM."; return; }
   sha256hex("majoodah-adaa-muwajjih:"+c).then(function(h){ if(HASHES.indexOf(h)>=0){ put("act",h); setActive(true); if(SYNC_ON&&!SY.code){ linkSync(c).then(function(){ if(!$("#syncChoice").hidden) show("data"); }); } m.className="msg ok"; m.textContent="تم التفعيل. تقدر الآن تطبع ملفك أو تحفظه PDF."; toast("تم تفعيل الملف"); setTimeout(function(){ $("#actPanel").hidden=true; },1600); } else { m.className="msg err"; m.textContent="الكود غير صحيح. تأكد من كتابته كما وصلك في رسالة الطلب، أو تواصل مع متجر مجودة."; } }).catch(function(){ m.className="msg err"; m.textContent="افتح الملف في متصفح حديث (كروم أو سفاري أو إيدج) لإتمام التفعيل."; }); });
 get("act").then(function(h){ if(h&&HASHES.indexOf(h)>=0) setActive(true); });
-get("state").then(function(st){ if(st&&st.items&&st.items.length===13){ S=st; } else { loadSample(); } norm(); LASTF=flat(S); return preload(); }).then(function(){ upgradePdfs().then(function(ch){ if(ch){ preload().then(function(){ DIRTY=true; boot2(); }); } }); var h=(location.hash||"").slice(1); if(["info","items","eval","print","data"].indexOf(h)>=0){ $$(".tab").forEach(function(t){ t.setAttribute("aria-selected",t.dataset.v===h?"true":"false"); }); } boot2(); setupSync(); });
+get("state").then(function(st){ if(st&&st.items&&st.items.length===13){ S=st; } else { loadSample(); } norm(); LASTF=flat(S); return preload(); }).then(function(){ upgradePdfs().then(function(ch){ if(ch){ preload().then(function(){ DIRTY=true; boot2(); }); } }); var h=(location.hash||"").slice(1); if(["info","items","eval","print","data"].indexOf(h)>=0){ $$(".tab").forEach(function(t){ t.setAttribute("aria-selected",t.dataset.v===h?"true":"false"); }); } boot2(); setupSync(); setTimeout(function(){ if(!SY.code) dedupEv(); },1200); });
 })();
 </script>
 
